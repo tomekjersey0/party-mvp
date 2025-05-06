@@ -2,8 +2,12 @@ import { useState } from "react";
 import { getDatabase, ref, set, get } from "firebase/database"; // Import Firebase methods
 import { app } from "../lib/firebase"; // Import your Firebase app setup
 import FormElement from "./FormElement"; // Assuming FormElement is a custom component
-import AuthTogglePrompt from "./AuthTogglePrompt";
 import AuthSubmitSection from "./AuthSubmitSection";
+import CryptoJS from "crypto-js";
+
+function hashPassword(password) {
+  return CryptoJS.SHA256(password).toString(CryptoJS.enc.Base64); // Example of SHA-256 hashing
+}
 
 // Validate UK phone number formats (international and local)
 function isValidPhone(phone) {
@@ -54,18 +58,24 @@ function SignUpForm() {
 
     const phone = normalizePhone(rawPhone); // Normalize phone to international format
 
+    const phoneRef = ref(db, "userExists/" + phone);
     const userRef = ref(db, "users/" + phone);
-    const snapshot = await get(userRef);
+    const snapshot = await get(phoneRef);
 
     // Check if phone is already registered
     if (snapshot.exists()) {
       setError("Phone number already registered.");
     } else {
+      // Create password hash
+      const passwordHash = hashPassword(formData.password);
+
       // Save user to the database
       await set(userRef, {
         name: formData.name,
-        password: formData.password,
+        passwordHash: passwordHash,
       });
+      await set(phoneRef, {verified: false});
+
       alert("User registered!");
     }
 

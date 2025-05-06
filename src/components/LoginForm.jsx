@@ -2,8 +2,12 @@ import { useState } from "react";
 import { getDatabase, ref, get } from "firebase/database";
 import { app } from "../lib/firebase"; // Adjust this import based on your project structure
 import FormElement from "./FormElement";
-import AuthTogglePrompt from "./AuthTogglePrompt";
 import AuthSubmitSection from "./AuthSubmitSection";
+import CryptoJS from "crypto-js";
+
+function hashPassword(password) {
+  return CryptoJS.SHA256(password).toString(CryptoJS.enc.Base64); // Example of SHA-256 hashing
+}
 
 function isValidPhone(phone) {
   const internationalPattern = /^\+44\d{10}$/; // +44 followed by 10 digits
@@ -46,16 +50,28 @@ function LoginForm() {
     }
 
     const phone = normalizePhone(rawPhone); // Normalize the phone number
+    const phoneRef = ref(db, "userExists/" + phone);
     const userRef = ref(db, "users/" + phone);
-    const snapshot = await get(userRef);
 
-    if (!snapshot.exists()) {
+    // Check if registered
+    const userExistsSnapshot = await get(phoneRef);
+    if (!userExistsSnapshot.exists()) {
       setError("Phone number not found.");
       return;
     }
 
-    const userData = snapshot.val();
-    if (userData.password !== formData.password) {
+    // Check if verified
+    const userExistsData = userExistsSnapshot.val();
+    if (!userExistsData.verified) {
+      setError("Your account is not verified.")
+      return;
+    }
+    
+    // Check the password
+    const userSnapshot = await get(userRef);
+    const userData = userSnapshot.val();
+    const hashedPassword = hashPassword(formData.password);
+    if (userData.passwordHash !== hashedPassword) {
       setError("Incorrect password.");
       return;
     }
