@@ -1,5 +1,10 @@
-function Step1() {
-    return <h2>Step 1 Welcome</h2>;
-}
-
-export default Step1;
+export default function Step4_Payment({ onNext }) {
+    return (
+      <div>
+        <h2>Buy Your Ticket 🎟️</h2>
+        <p>£5 entry – secure your place now.</p>
+        <button onClick={onNext}>Pay & Continue</button>
+      </div>
+    );
+  }
+  

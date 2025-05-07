@@ -1,9 +1,10 @@
 import { Routes, Route } from "react-router-dom";
+import { lazy } from "react";
 import Index from "./pages/Index";
-import AuthPage from "./pages/AuthPage";
-import DashboardPage from "./pages/DashboardPage"
-import OnboardingPage from "./pages/OnboardingPage"
-import FinishSignUpPage from "./pages/FinishSignUpPage";
+const AuthPage = lazy(() => import("./pages/AuthPage"));
+const FinishSignUpPage = lazy(() => import("./pages/FinishSignUpPage"));
+const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
 import { AuthModeProvider } from "./contexts/AuthModeContext";
 
 function App() {
@@ -13,8 +14,8 @@ function App() {
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/finishSignUp" element={<FinishSignUpPage />} />
-        <Route path="/dashboard" element={<DashboardPage />}/>
-        <Route path="/onboarding" element={<OnboardingPage />}/>
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/onboarding/*" element={<OnboardingPage />} />
       </Routes>
     </AuthModeProvider>
   );

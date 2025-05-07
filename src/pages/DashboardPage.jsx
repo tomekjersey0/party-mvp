@@ -32,7 +32,7 @@ function DashboardPage() {
       const snapshot = await get(userRef);
 
       if (!snapshot.exists()) {
-        navigate("/onboarding");
+        navigate('/onboarding/step-1', { state: { fromAuth: true } });
       } else {
         setCheckingUser(false);
       }

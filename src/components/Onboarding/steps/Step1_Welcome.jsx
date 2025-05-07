@@ -1,5 +1,10 @@
-function Step1() {
-    return <h2>Step 1 Welcome</h2>;
-}
-
-export default Step1;
+export default function Step1_Welcome({ onNext }) {
+    return (
+      <div>
+        <h2>Welcome to the Party App 🎉</h2>
+        <p>This app manages tickets, drinks, and more. Let's get started.</p>
+        <button onClick={onNext}>Next</button>
+      </div>
+    );
+  }
+  
