@@ -1,97 +1,53 @@
 import { useState } from "react";
-import { getDatabase, ref, get } from "firebase/database";
-import { app } from "../lib/firebase"; // Adjust this import based on your project structure
-import FormElement from "./FormElement";
-import AuthSubmitSection from "./AuthSubmitSection";
-import CryptoJS from "crypto-js";
-
-function hashPassword(password) {
-  return CryptoJS.SHA256(password).toString(CryptoJS.enc.Base64); // Example of SHA-256 hashing
-}
-
-function isValidPhone(phone) {
-  const internationalPattern = /^\+44\d{10}$/; // +44 followed by 10 digits
-  const localPattern = /^07\d{9}$/; // 07 followed by 9 digits
-  return internationalPattern.test(phone) || localPattern.test(phone);
-}
-
-function normalizePhone(phone) {
-  const trimmed = phone.trim();
-  if (/^07\d{9}$/.test(trimmed)) {
-    return "+44" + trimmed.slice(1);
-  }
-  return trimmed; // Already in +44 format
-}
+import { getAuth, sendSignInLinkToEmail } from "firebase/auth";
 
 function LoginForm() {
-  const [formData, setFormData] = useState({
-    phone: "",
-    password: "",
-  });
-  const [error, setError] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
+  const auth = getAuth();
+
+  // This configuration must match settings in the Firebase console.
+  const actionCodeSettings = {
+    // URL you want to redirect back to. This can be a route in your app.
+    url: "http://localhost:5173/finishSignUp",
+    handleCodeInApp: true,
   };
 
-  async function handleSubmit(e) {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    const db = getDatabase(app);
-
-    const rawPhone = formData.phone.trim();
-
-    if (!isValidPhone(rawPhone)) {
-      setError("Please enter a valid UK phone number.");
-      return;
-    }
-
-    const phone = normalizePhone(rawPhone); // Normalize the phone number
-    const phoneRef = ref(db, "userExists/" + phone);
-    const userRef = ref(db, "users/" + phone);
-
-    // Check if registered
-    const userExistsSnapshot = await get(phoneRef);
-    if (!userExistsSnapshot.exists()) {
-      setError("Phone number not found.");
-      return;
-    }
-
-    // Check if verified
-    const userExistsData = userExistsSnapshot.val();
-    if (!userExistsData.verified) {
-      setError("Your account is not verified.")
-      return;
-    }
-    
-    // Check the password
-    const userSnapshot = await get(userRef);
-    const userData = userSnapshot.val();
-    const hashedPassword = hashPassword(formData.password);
-    if (userData.passwordHash !== hashedPassword) {
-      setError("Incorrect password.");
-      return;
-    }
-
-    // Successful login
-    alert("Logged in successfully!");
-    // You could redirect the user or manage session here
-    console.log("Logged in user:", userData);
-  }
+    sendSignInLinkToEmail(auth, email, actionCodeSettings)
+      .then(() => {
+        // Optional: save email locally so you can complete sign in
+        window.localStorage.setItem("emailForSignIn", email);
+        setMessage("A sign‑in link has been sent to your email.");
+      })
+      .catch((error) => {
+        console.error("Error sending email link", error);
+        setMessage("Error sending sign‑in link. Please try again.");
+      });
+  };
 
   return (
-    <form onSubmit={handleSubmit} onChange={handleChange} className="container">
-      <FormElement
-        name="phone"
-        inputPlaceholder="Enter your phone number"
-        type="tel"
-      ></FormElement>
-      <FormElement name="password"></FormElement>
-      {error && <div className="alert alert-danger">{error}</div>}
-      <AuthSubmitSection text="Login" />
+    <form onSubmit={handleSubmit}>
+      <div className="mb-3">
+        <label className="form-label" htmlFor="email">
+          Email:
+        </label>
+        <input
+          type="email"
+          name="email"
+          id="email"
+          className="form-control"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+      </div>
+      <button type="submit" className="btn btn-primary">
+        Send Sign‑in Link
+      </button>
+      {message && <div className="mt-2 alert alert-info">{message}</div>}
     </form>
   );
 }
