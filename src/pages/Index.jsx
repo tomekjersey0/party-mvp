@@ -6,6 +6,10 @@ function Index() {
       location: "/auth",
       text: "Authorize",
     },
+    {
+      location: "/dashboard",
+      text: "Dashboard"
+    }
   ];
 
   return (
