@@ -20,7 +20,7 @@ function AuthPage() {
   const navigate = useNavigate();
 
   const actionCodeSettings = {
-    url: "http://localhost:5173/finishSignUp",
+    url: "https://df011-db.web.app:5173/finishSignUp",
     handleCodeInApp: true,
   };
 

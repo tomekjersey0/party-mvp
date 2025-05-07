@@ -10,7 +10,7 @@ function LoginForm() {
   // This configuration must match settings in the Firebase console.
   const actionCodeSettings = {
     // URL you want to redirect back to. This can be a route in your app.
-    url: "http://localhost:5173/finishSignUp",
+    url: "https://df011-db.web.app/finishSignUp",
     handleCodeInApp: true,
   };
 
