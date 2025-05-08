@@ -6,6 +6,7 @@ import {
   updatePassword,
 } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
+import { auth } from "../lib/firebase";
 
 function FinishSignUpPage() {
   const [password, setPassword] = useState("");
@@ -13,7 +14,6 @@ function FinishSignUpPage() {
   const [successMessage, setSuccessMessage] = useState("");
   const [isPasswordSet, setIsPasswordSet] = useState(false);
   const navigate = useNavigate();
-  const auth = getAuth();
 
   useEffect(() => {
     const email = window.localStorage.getItem("emailForSignIn");
@@ -45,8 +45,12 @@ function FinishSignUpPage() {
           navigate("/dashboard");
         })
         .catch((error) => {
-          setError("Failed to update password. Please try again.");
-          console.error("Error updating password: ", error);
+          if (error.code === "auth/weak-password") {
+            setError("Password should be at least 6 characters long.");
+            console.error("Error updating password: ", error);
+          } else {
+            setError("Failed to update password. Please try again.");
+          }
         });
     } else {
       // If no user is authenticated, show an error message

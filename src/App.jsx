@@ -2,10 +2,10 @@ import { Routes, Route } from "react-router-dom";
 import { lazy } from "react";
 import Index from "./pages/Index";
 const AuthPage = lazy(() => import("./pages/AuthPage"));
-const FinishSignUpPage = lazy(() => import("./pages/FinishSignUpPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
 import { AuthModeProvider } from "./contexts/AuthModeContext";
+import FinishSignUpPage from "./pages/FinishSignUpPage";
 
 function App() {
   return (
