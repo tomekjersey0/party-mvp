@@ -1,92 +1,118 @@
-import { useState } from "react";
-import {
-  getAuth,
-  sendSignInLinkToEmail,
-  signInWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithCredential,
-} from "firebase/auth";
-import { GoogleLogin } from "@react-oauth/google";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
 import { auth } from "../lib/firebase";
+import {
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  signInAnonymously,
+} from "firebase/auth";
+import { useNavigate } from "react-router-dom";
 
 function AuthPage() {
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [confirmationResult, setConfirmationResult] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
-  const [showEmailForm, setShowEmailForm] = useState(false);
-  const [showPasswordForm, setShowPasswordForm] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [infoMessage, setInfoMessage] = useState("");
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [showAnonLogin, setShowAnonLogin] = useState(false);
+  const [showInputPhoneNumber, setShowInputPhoneNumber] = useState(true);
+  const recaptchaVerifierRef = useRef(null);
   const navigate = useNavigate();
 
-  const actionCodeSettings = {
-    url: "https://df011-db.web.app/finishSignUp",
-    handleCodeInApp: true,
-  };
-
-  // Handle Google Sign-in
-  const handleGoogleSignIn = (response) => {
-    const credential = GoogleAuthProvider.credential(response.credential);
-
-    signInWithCredential(auth, credential)
-      .then((userCredential) => {
-        const user = userCredential.user;
-        console.log("User UID: ", user.uid);
-        navigate("/dashboard");
-      })
-      .catch((error) => {
-        console.log("Error signing in with Google: ", error);
-        setErrorMessage("Google Sign-In Failed. Please try again.");
-      });
-  };
-
-  const handleError = () => {
-    console.log("Google Sign-In Failed");
-    setErrorMessage("Google Sign-In Failed. Please try again.");
-  };
-
-  // Handle email form submission (for sending email link)
-  const handleEmailSubmit = (e) => {
-    e.preventDefault();
-    sendSignInLinkToEmail(auth, email, actionCodeSettings)
-      .then(() => {
-        window.localStorage.setItem("emailForSignIn", email);
-        setInfoMessage("A sign‑in link has been sent to your email.");
-      })
-      .catch((error) => {
-        console.error("Error sending email link: ", error);
-        setErrorMessage("Failed to send sign‑in link. Please try again.");
-      });
-  };
-
-  // Handle email/password sign-in
-  const handleEmailPasswordSignIn = (e) => {
-    e.preventDefault();
-    const auth = getAuth();
-    signInWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
-        const user = userCredential.user;
-        console.log("User UID:", user.uid);
-        navigate("/dashboard");
-      })
-      .catch((error) => {
-        let errorMessage;
-        if (error.code == "auth/invalid-credential") {
-          errorMessage = "Error: The email or password you entered is incorrect, or you may need to complete your registration via the link sent to your email";
-        } else {
-          errorMessage = `Error: ${error}`;
+  useEffect(() => {
+    if (!recaptchaVerifierRef.current) {
+      recaptchaVerifierRef.current = new RecaptchaVerifier(
+        auth,
+        "recaptcha-container",
+        {
+          size: "invisible",
+          callback: () => {},
+          "expired-callback": () => {
+            setErrorMessage("reCAPTCHA expired, please try again.");
+          },
         }
-        setErrorMessage(errorMessage);
-      });
+      );
+    }
+  }, []);
+
+  // Handle anonymous login
+  const handleAnonymousLogin = async () => {
+    try {
+      await signInAnonymously(auth);
+      setIsAnonymous(true);
+      setInfoMessage("Signed in anonymously!");
+      navigate("/dashboard");
+    } catch (error) {
+      setErrorMessage(error.message || "Failed to sign in anonymously.");
+    }
+  };
+
+  const handleSendCode = async (e) => {
+    e.preventDefault();
+    setErrorMessage("");
+    setInfoMessage("");
+
+    if (!phoneNumber) {
+      setErrorMessage("Phone number is required.");
+      return;
+    }
+
+    try {
+      const result = await signInWithPhoneNumber(
+        auth,
+        phoneNumber,
+        recaptchaVerifierRef.current
+      );
+      setConfirmationResult(result);
+      setInfoMessage("Verification code sent!");
+      setShowInputPhoneNumber(false);
+    } catch (error) {
+      setErrorMessage(error.message || "Failed to send code.");
+    }
+  };
+
+  const handleVerifyCode = async (e) => {
+    e.preventDefault();
+    setErrorMessage("");
+    setInfoMessage("");
+
+    if (!verificationCode) {
+      setErrorMessage("Verification code is required.");
+      return;
+    }
+
+    try {
+      await confirmationResult.confirm(verificationCode);
+      setInfoMessage("Successfully signed in!");
+      navigate("/dashboard");
+    } catch (error) {
+      setErrorMessage("Invalid verification code.");
+    }
   };
 
   return (
-    <div className="d-flex justify-content-center align-items-center vh-100">
+    <div className="d-flex justify-content-center align-items-center vh-100 bg-light">
+      <div className="position-absolute top-0 end-0 p-3">
+        <button
+          onClick={() => setShowAnonLogin((prev) => !prev)}
+          className="btn btn-link text-decoration-none"
+        >
+          {showAnonLogin ? "Hide Anonymous Login" : "Show Anonymous Login"}
+        </button>
+      </div>
       <div
-        className="card p-4 shadow-lg"
+        className="card p-4 shadow border-0"
         style={{ width: "100%", maxWidth: "400px" }}
       >
-        <h3 className="text-center mb-4">Sign In</h3>
+        <div className="mb-4 text-center">
+          <h2 className="fw-bold">Sign In</h2>
+          {showInputPhoneNumber && (
+            <p className="text-muted small">
+              Enter your phone number to receive a verification code, or sign in
+              anonymously.
+            </p>
+          )}
+        </div>
 
         {errorMessage && (
           <div
@@ -99,116 +125,103 @@ function AuthPage() {
         )}
         {infoMessage && <div className="alert alert-info">{infoMessage}</div>}
 
-        {/* Show email form or password form */}
-        {!showEmailForm && !showPasswordForm ? (
-          <>
-            <div className="mb-3">
-              <GoogleLogin
-                onSuccess={handleGoogleSignIn}
-                onError={handleError}
-                useOneTap
-                theme="outline"
-                shape="rectangular"
-                text="signin_with"
-                width="100%"
-              />
-            </div>
-
-            <div className="text-center">
-              <hr />
-              <p>Or</p>
-              <button
-                className="btn btn-secondary w-100 mb-3"
-                onClick={() => setShowEmailForm(true)}
-              >
-                Sign In with Email
-              </button>
-              <button
-                className="btn btn-secondary w-100 mb-3"
-                onClick={() => setShowPasswordForm(true)} // Switch to password form
-              >
-                Sign In with Email/Password
-              </button>
-            </div>
-          </>
-        ) : null}
-
-        {/* Show email form */}
-        {showEmailForm && (
-          <form onSubmit={handleEmailSubmit}>
-            <div className="mb-3">
-              <label className="form-label" htmlFor="email">
-                Email:
-              </label>
-              <input
-                type="email"
-                name="email"
-                id="email"
-                className="form-control"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <button type="submit" className="btn btn-primary w-100">
-              Send Sign‑in Link
-            </button>
+        {/* Option to sign in anonymously */}
+        {!isAnonymous && showAnonLogin && (
+          <div className="mb-3 text-center">
             <button
-              type="button"
-              className="btn btn-link w-100 mt-2"
-              onClick={() => setShowEmailForm(false)}
+              onClick={handleAnonymousLogin}
+              className="btn btn-outline-secondary btn-lg px-4 py-2 fw-bold shadow-sm"
+              style={{ borderRadius: "30px" }}
             >
-              Back
+              Sign In Anonymously
             </button>
-          </form>
+          </div>
         )}
 
-        {/* Show email/password form */}
-        {showPasswordForm && (
-          <form onSubmit={handleEmailPasswordSignIn}>
+        <form onSubmit={confirmationResult ? handleVerifyCode : handleSendCode}>
+          {/* Phone input */}
+          {showInputPhoneNumber && (
             <div className="mb-3">
-              <label className="form-label" htmlFor="email">
-                Email:
+              <label htmlFor="phone" className="form-label">
+                Phone Number
               </label>
               <input
-                type="email"
-                name="email"
-                id="email"
+                type="tel"
                 className="form-control"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="phone"
+                placeholder="+1 555 123 4567"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                disabled={!!confirmationResult || isAnonymous}
                 required
               />
+              <div className="form-text">
+                Include your country code, e.g., +44 for UK.
+              </div>
             </div>
+          )}
+
+          {/* OTP input */}
+          {confirmationResult && (
             <div className="mb-3">
-              <label className="form-label" htmlFor="password">
-                Password:
+              <label htmlFor="code" className="form-label">
+                Verification Code
               </label>
-              <input
-                type="password"
-                name="password"
-                id="password"
-                className="form-control"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <div className="d-flex justify-content-between">
+                {[...Array(6)].map((_, index) => (
+                  <input
+                    key={index}
+                    type="text"
+                    maxLength="1"
+                    className="form-control text-center mx-1"
+                    style={{ width: "40px", fontSize: "1.5rem" }}
+                    value={verificationCode[index] || ""}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9]/g, ""); // Allow numbers only
+                      const newCode = verificationCode.split("");
+                      newCode[index] = value;
+                      setVerificationCode(newCode.join(""));
+                      // Automatically move to the next input
+                      if (value && e.target.nextSibling) {
+                        e.target.nextSibling.focus();
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Backspace") {
+                        const newCode = verificationCode.split("");
+                        newCode[index] = ""; // Clear the current input
+                        setVerificationCode(newCode.join(""));
+                        // Move to the previous input if empty
+                        if (
+                          !verificationCode[index] &&
+                          e.target.previousSibling
+                        ) {
+                          e.target.previousSibling.focus();
+                        }
+                      }
+                    }}
+                    required
+                  />
+                ))}
+              </div>
             </div>
-            <button type="submit" className="btn btn-primary w-100">
-              Sign In
+          )}
+
+          <div className="d-grid gap-2">
+            <button type="submit" className="btn btn-primary">
+              {confirmationResult ? "Verify Code" : "Send Code"}
             </button>
-            <button
-              type="button"
-              className="btn btn-link w-100 mt-2"
-              onClick={() => setShowPasswordForm(false)}
-            >
-              Back
-            </button>
-          </form>
-        )}
+          </div>
+        </form>
+
+        <div id="recaptcha-container"></div>
+
+        {/* Optional footer */}
+        <div className="mt-4 text-center">
+          <small className="text-muted">
+            Your number is never shared. Standard SMS rates may apply.
+          </small>
+        </div>
       </div>
     </div>
   );

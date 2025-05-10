@@ -5,7 +5,6 @@ const AuthPage = lazy(() => import("./pages/AuthPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
 import { AuthModeProvider } from "./contexts/AuthModeContext";
-import FinishSignUpPage from "./pages/FinishSignUpPage";
 
 function App() {
   return (
@@ -13,7 +12,6 @@ function App() {
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<AuthPage />} />
-        <Route path="/finishSignUp" element={<FinishSignUpPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/onboarding/*" element={<OnboardingPage />} />
       </Routes>
