@@ -8,6 +8,7 @@ function OnboardingFlow() {
   const navigate = useNavigate();
   const [direction, setDirection] = useState(1);
   const prevStepRef = useRef(null);
+  const [changeAccountEnabled, setChangeAccountEnabled] = useState(true);
 
   const step = parseInt(stepNumber ?? "1", 10) - 1;
   const CurrentStep = onboardingSteps[step];
@@ -35,7 +36,7 @@ function OnboardingFlow() {
   const handleNextStep = () => {
     const nextStep = step + 2;
     if (nextStep > onboardingSteps.length) {
-      navigate("/onboarding/complete", { replace: true });
+      navigate("/dashboard", { replace: true });
     } else {
       navigate(`/onboarding/${nextStep}`);
     }
@@ -53,7 +54,7 @@ function OnboardingFlow() {
 
   return (
     <>
-      {step === 0 && (
+      {step === 0 && changeAccountEnabled && (
         <button
           onClick={handleExitToAuth}
           style={{
@@ -75,11 +76,14 @@ function OnboardingFlow() {
         </button>
       )}
       <div
+        className="d-flex justify-content-center align-items-center"
         style={{
           position: "relative",
           overflow: "hidden",
           width: "100%",
-          minHeight: "300px",
+          minHeight: "100vh",
+          padding: "2rem",
+          backgroundColor: "#f8f9fa",
         }}
       >
         <AnimatePresence mode="wait">
@@ -91,9 +95,12 @@ function OnboardingFlow() {
             animate="center"
             exit="exit"
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            style={{ position: "absolute", width: "100%" }}
+            style={{
+              width: "100%",
+              maxWidth: "600px",
+            }}
           >
-            <CurrentStep onNext={handleNextStep} />
+            <CurrentStep onNext={handleNextStep}></CurrentStep>
           </motion.div>
         </AnimatePresence>
       </div>

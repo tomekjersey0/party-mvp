@@ -8,6 +8,7 @@ function DashboardPage() {
   const navigate = useNavigate();
   const [userUid, setUserUid] = useState(null);
   const [checkingUser, setCheckingUser] = useState(true);
+  const [fullName, setFullName] = useState("");
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -34,6 +35,8 @@ function DashboardPage() {
       if (!snapshot.exists()) {
         navigate('/onboarding/step-1', { state: { fromAuth: true } });
       } else {
+        const userData = snapshot.val();
+        setFullName(userData.fullName);
         setCheckingUser(false);
       }
     };
@@ -48,7 +51,7 @@ function DashboardPage() {
   return (
     <div>
       <h1>Dashboard</h1>
-      <p>Welcome to your dashboard.</p>
+      <p>Welcome to your dashboard, {fullName}!</p>
     </div>
   );
 }
