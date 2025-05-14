@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth, app } from "../lib/firebase";
 import { ref, get, getDatabase } from "firebase/database";
 
@@ -9,6 +9,7 @@ function DashboardPage() {
   const [userUid, setUserUid] = useState(null);
   const [checkingUser, setCheckingUser] = useState(true);
   const [fullName, setFullName] = useState("");
+  const [infoBox, setInfoBox] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -33,7 +34,7 @@ function DashboardPage() {
       const snapshot = await get(userRef);
 
       if (!snapshot.exists()) {
-        navigate('/onboarding/step-1', { state: { fromAuth: true } });
+        navigate("/onboarding/step-1", { state: { fromAuth: true } });
       } else {
         const userData = snapshot.val();
         setFullName(userData.fullName);
@@ -48,10 +49,18 @@ function DashboardPage() {
     return <p>Loading...</p>; // or a loading spinner
   }
 
+  function handleSignOut() {
+    signOut(auth).then(() => {
+      //
+    });
+  }
+
   return (
-    <div>
+    <div className="position-relative" style={{height: "100vh"}}>
+      {infoBox && <div className="alert alert-info">asd</div>}
       <h1>Dashboard</h1>
       <p>Welcome to your dashboard, {fullName}!</p>
+      
     </div>
   );
 }
