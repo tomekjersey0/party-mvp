@@ -60,7 +60,7 @@ function DashboardPage() {
       {infoBox && <div className="alert alert-info">asd</div>}
       <h1>Dashboard</h1>
       <p>Welcome to your dashboard, {fullName}!</p>
-      
+      <button onClick={handleSignOut} >Sign Out</button>
     </div>
   );
 }
