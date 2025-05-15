@@ -1,32 +1,20 @@
-import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useRef, useState, useLayoutEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { onboardingSteps } from "./steps";
 import { AnimatePresence, motion } from "framer-motion";
+import { signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 function OnboardingFlow() {
   const { stepNumber } = useParams();
+  const step = parseInt(stepNumber, 10); // convert string to number
   const navigate = useNavigate();
-  const [direction, setDirection] = useState(1);
-  const prevStepRef = useRef(null);
   const [changeAccountEnabled, setChangeAccountEnabled] = useState(true);
+  const CurrentStep = onboardingSteps[step - 1];
 
-  const step = parseInt(stepNumber ?? "1", 10) - 1;
-  const CurrentStep = onboardingSteps[step];
-
-  // Update direction before paint for smooth transitions.
-  useLayoutEffect(() => {
-    if (prevStepRef.current !== null) {
-      if (step < prevStepRef.current) {
-        setDirection(-1);
-      } else {
-        setDirection(1);
-      }
-    }
-    prevStepRef.current = step;
-  }, [step]);
-
+  // Send user to the first step if they try to access an invalid step
   useEffect(() => {
-    if (step < 0 || step >= onboardingSteps.length || isNaN(step)) {
+    if (isNaN(step) || step < 1 || step > onboardingSteps.length) {
       navigate("/onboarding/1", { replace: true });
     }
   }, [step, navigate]);
@@ -34,7 +22,7 @@ function OnboardingFlow() {
   if (!CurrentStep) return null;
 
   const handleNextStep = () => {
-    const nextStep = step + 2;
+    const nextStep = step + 1;
     if (nextStep > onboardingSteps.length) {
       navigate("/dashboard", { replace: true });
     } else {
@@ -44,17 +32,12 @@ function OnboardingFlow() {
 
   const handleExitToAuth = () => {
     navigate("/auth", { replace: true });
-  };
-
-  const variants = {
-    enter: (direction) => ({ x: direction > 0 ? 300 : -300, opacity: 0 }),
-    center: { x: 0, opacity: 1 },
-    exit: (direction) => ({ x: direction > 0 ? -300 : 300, opacity: 0 }),
+    signOut(auth);  
   };
 
   return (
     <>
-      {step === 0 && changeAccountEnabled && (
+      {step === 1 && changeAccountEnabled && (
         <button
           onClick={handleExitToAuth}
           style={{
@@ -89,8 +72,6 @@ function OnboardingFlow() {
         <AnimatePresence mode="wait">
           <motion.div
             key={step}
-            custom={direction}
-            variants={variants}
             initial="enter"
             animate="center"
             exit="exit"
@@ -100,7 +81,7 @@ function OnboardingFlow() {
               maxWidth: "600px",
             }}
           >
-            <CurrentStep onNext={handleNextStep}></CurrentStep>
+            <CurrentStep onNext={handleNextStep} />
           </motion.div>
         </AnimatePresence>
       </div>

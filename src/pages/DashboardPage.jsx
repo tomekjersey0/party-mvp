@@ -11,7 +11,7 @@ function DashboardPage() {
   const [fullName, setFullName] = useState("");
   const [infoBox, setInfoBox] = useState(false);
 
-  // Redirect if not authenticated
+  // Redirect if not authenticated, set user UID
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {

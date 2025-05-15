@@ -19,6 +19,17 @@ function AuthPage() {
   const recaptchaVerifierRef = useRef(null);
   const navigate = useNavigate();
 
+  // If already logged in, redirect to dashboard
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        navigate("/dashboard");
+      }
+    });
+
+    return () => unsubscribe();
+  }, [navigate]);
+
   useEffect(() => {
     if (!recaptchaVerifierRef.current) {
       recaptchaVerifierRef.current = new RecaptchaVerifier(
